@@ -33,7 +33,7 @@ function M.apply_preview_concealing(bufnr)
     -- Set up syntax concealing for markdown elements
     vim.cmd([[
 
-        " Todo checkboxes and strikethrough - completely disabled, handled by virtual text only
+
 
     " Headers - conceal the # symbols (simple approach)
     syntax match MarkdownH1 /^#\s/ conceal
@@ -75,17 +75,9 @@ function M.apply_preview_concealing(bufnr)
     highlight link MarkdownBold Bold
     highlight link MarkdownInlineCode String
     highlight link MarkdownListMarker Operator
-    highlight link MarkdownTodoChecked DiffAdd
-    highlight link MarkdownTodoUnchecked DiffDelete
 
     " Links - ensure they are underlined
     highlight link MarkdownLink SimpleMarkdownLink
-
-    " Clean check mark without background
-    highlight MarkdownTodoCheckedClean guifg=green ctermfg=green
-
-    " Completed tasks with strikethrough
-    highlight MarkdownCompletedTask gui=strikethrough cterm=strikethrough
   ]])
 
     -- Force redraw to ensure concealing takes effect
@@ -100,12 +92,10 @@ function M.apply_preview_concealing(bufnr)
     local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
     local ns_id_header = vim.api.nvim_create_namespace("SimpleMarkdownHeaderSpacing")
     local ns_id_list = vim.api.nvim_create_namespace("SimpleMarkdownListMarkers")
-    local ns_id_checkbox = vim.api.nvim_create_namespace("SimpleMarkdownCheckboxes")
 
     -- Clear existing virtual text
     vim.api.nvim_buf_clear_namespace(bufnr, ns_id_header, 0, -1)
     vim.api.nvim_buf_clear_namespace(bufnr, ns_id_list, 0, -1)
-    vim.api.nvim_buf_clear_namespace(bufnr, ns_id_checkbox, 0, -1)
 
     for i, line in ipairs(lines) do
         -- Check if line is a header
@@ -117,34 +107,11 @@ function M.apply_preview_concealing(bufnr)
             })
         end
 
-        -- Handle checkboxes with virtual text - match checkbox with space directly
-        -- Look for [x], [X], or [ ] patterns followed by a space
-        local checkbox_start, checkbox_end = line:find("%[[ xX]%]%s")
-        if checkbox_start then
-            local checkbox_text = line:sub(checkbox_start, checkbox_start + 2) -- Just the [x] part
 
-            if checkbox_text:match("%[x%]") or checkbox_text:match("%[X%]") then
-                -- Completed task: show check icon
-                vim.api.nvim_buf_set_extmark(bufnr, ns_id_checkbox, i - 1, checkbox_start - 1, {
-                    end_col = checkbox_end, -- Cover entire checkbox + space (end_col is exclusive)
-                    virt_text = { { "✓ ", "MarkdownTodoCheckedClean" } },
-                    virt_text_pos = "overlay",
-                    hl_mode = "combine"
-                })
-            else
-                -- Uncompleted task: hide the checkbox completely
-                vim.api.nvim_buf_set_extmark(bufnr, ns_id_checkbox, i - 1, checkbox_start - 1, {
-                    end_col = checkbox_end, -- Cover entire checkbox + space (end_col is exclusive)
-                    virt_text = { { "  ", "MarkdownTodoUnchecked" } },
-                    virt_text_pos = "overlay",
-                    hl_mode = "combine"
-                })
-            end
-        end
 
-        -- Handle list markers with proper spacing (skip if it's a todo item)
+        -- Handle list markers with proper spacing
         local list_start, list_end = line:find("^%s*[-*+]%s")
-        if list_start and not line:match("%[[ xX]%]") then
+        if list_start then
             local marker_text = line:sub(list_start, list_end)
             local replacement_char = "• " -- Default bullet with space
 
@@ -181,15 +148,13 @@ function M.remove_preview_concealing(bufnr)
     -- Clear syntax concealing
     vim.cmd('syntax clear')
 
-    -- Clear virtual text spacing, horizontal lines, list markers, and checkboxes
+    -- Clear virtual text spacing, horizontal lines, and list markers
     local ns_id_header = vim.api.nvim_create_namespace("SimpleMarkdownHeaderSpacing")
     local ns_id_horizontal = vim.api.nvim_create_namespace("SimpleMarkdownHorizontalLines")
     local ns_id_list = vim.api.nvim_create_namespace("SimpleMarkdownListMarkers")
-    local ns_id_checkbox = vim.api.nvim_create_namespace("SimpleMarkdownCheckboxes")
     vim.api.nvim_buf_clear_namespace(bufnr, ns_id_header, 0, -1)
     vim.api.nvim_buf_clear_namespace(bufnr, ns_id_horizontal, 0, -1)
     vim.api.nvim_buf_clear_namespace(bufnr, ns_id_list, 0, -1)
-    vim.api.nvim_buf_clear_namespace(bufnr, ns_id_checkbox, 0, -1)
 
     -- Reset syntax to default markdown
     vim.cmd('set syntax=markdown')

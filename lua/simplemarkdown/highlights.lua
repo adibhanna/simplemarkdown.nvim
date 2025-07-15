@@ -36,25 +36,7 @@ local function define_highlight_groups()
     end
   end
 
-  -- Todo list highlights (softer approach)
-  safe_highlight("SimpleMarkdownTodo", {
-    fg = colors.muted or colors.subtle
-  })
 
-  safe_highlight("SimpleMarkdownTodoUnchecked", {
-    fg = colors.keyword or colors.normal,
-    bold = true
-  })
-
-  safe_highlight("SimpleMarkdownTodoChecked", {
-    fg = colors.string or colors.normal,
-    bold = true
-  })
-
-  safe_highlight("SimpleMarkdownTodoDate", {
-    fg = colors.identifier or colors.keyword or colors.normal,
-    bold = true
-  })
 
   -- Code block highlights (subtle)
   safe_highlight("SimpleMarkdownCodeBlock", {
@@ -188,16 +170,6 @@ function M.apply_highlights()
   end
 
   -- Only apply minimal highlighting in edit mode
-  -- Todo lists with checkboxes (only exact patterns at start of list items)
-  safe_matchadd("SimpleMarkdownTodoUnchecked", "^\\s*-\\s\\[ \\]")
-  safe_matchadd("SimpleMarkdownTodoUnchecked", "^\\s*\\*\\s\\[ \\]")
-  safe_matchadd("SimpleMarkdownTodoUnchecked", "^\\s*\\+\\s\\[ \\]")
-  safe_matchadd("SimpleMarkdownTodoChecked", "^\\s*-\\s\\[x\\]")
-  safe_matchadd("SimpleMarkdownTodoChecked", "^\\s*\\*\\s\\[x\\]")
-  safe_matchadd("SimpleMarkdownTodoChecked", "^\\s*\\+\\s\\[x\\]")
-  safe_matchadd("SimpleMarkdownTodoChecked", "^\\s*-\\s\\[X\\]")
-  safe_matchadd("SimpleMarkdownTodoChecked", "^\\s*\\*\\s\\[X\\]")
-  safe_matchadd("SimpleMarkdownTodoChecked", "^\\s*\\+\\s\\[X\\]")
 
   -- Headers (only the # symbols)
   safe_matchadd("SimpleMarkdownH1", "^#\\s")
