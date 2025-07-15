@@ -187,35 +187,19 @@ function M.apply_highlights()
     end
   end
 
-  -- Todo lists with checkboxes (simplified and reliable patterns)
-  safe_matchadd("SimpleMarkdownTodoUnchecked", "\\[ \\]")
-  safe_matchadd("SimpleMarkdownTodoUnchecked", "\\[\\s\\]")
-  safe_matchadd("SimpleMarkdownTodoChecked", "\\[x\\]")
-  safe_matchadd("SimpleMarkdownTodoChecked", "\\[X\\]")
+  -- Only apply minimal highlighting in edit mode
+  -- Todo lists with checkboxes (only exact patterns at start of list items)
+  safe_matchadd("SimpleMarkdownTodoUnchecked", "^\\s*-\\s\\[ \\]")
+  safe_matchadd("SimpleMarkdownTodoUnchecked", "^\\s*\\*\\s\\[ \\]")
+  safe_matchadd("SimpleMarkdownTodoUnchecked", "^\\s*\\+\\s\\[ \\]")
+  safe_matchadd("SimpleMarkdownTodoChecked", "^\\s*-\\s\\[x\\]")
+  safe_matchadd("SimpleMarkdownTodoChecked", "^\\s*\\*\\s\\[x\\]")
+  safe_matchadd("SimpleMarkdownTodoChecked", "^\\s*\\+\\s\\[x\\]")
+  safe_matchadd("SimpleMarkdownTodoChecked", "^\\s*-\\s\\[X\\]")
+  safe_matchadd("SimpleMarkdownTodoChecked", "^\\s*\\*\\s\\[X\\]")
+  safe_matchadd("SimpleMarkdownTodoChecked", "^\\s*\\+\\s\\[X\\]")
 
-  -- Dates (improved patterns for full date contexts)
-  safe_matchadd("SimpleMarkdownTodoDate", "\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}")
-  safe_matchadd("SimpleMarkdownTodoDate", "\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}\\s\\+\\d\\{1,2\\}:\\d\\{2\\}")
-  safe_matchadd("SimpleMarkdownTodoDate", "\\d\\{1,2\\}:\\d\\{2\\}")
-
-  -- Full date patterns (Due: Monday June 17, 2025)
-  safe_matchadd("SimpleMarkdownTodoDate", "Due:\\s\\+\\w\\+\\s\\+\\w\\+\\s\\+\\d\\+,\\s\\+\\d\\{4\\}")
-  safe_matchadd("SimpleMarkdownTodoDate", "Created:\\s\\+\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}\\s\\+\\d\\{1,2\\}:\\d\\{2\\}")
-
-  -- Individual date components (as fallback)
-  safe_matchadd("SimpleMarkdownTodoDate",
-    "\\(Monday\\|Tuesday\\|Wednesday\\|Thursday\\|Friday\\|Saturday\\|Sunday\\)\\s\\+\\(January\\|February\\|March\\|April\\|May\\|June\\|July\\|August\\|September\\|October\\|November\\|December\\)\\s\\+\\d\\+,\\s\\+\\d\\{4\\}")
-  safe_matchadd("SimpleMarkdownTodoDate",
-    "\\(Jan\\|Feb\\|Mar\\|Apr\\|May\\|Jun\\|Jul\\|Aug\\|Sep\\|Oct\\|Nov\\|Dec\\)\\s\\+\\d\\+,\\s\\+\\d\\{4\\}")
-
-  -- Time patterns
-  safe_matchadd("SimpleMarkdownTodoDate", "@\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}")
-
-  -- Code blocks (fenced) - simplified
-  safe_matchadd("SimpleMarkdownCodeBlockBorder", "^```")
-  safe_matchadd("SimpleMarkdownCodeBlockBorder", "^~~~")
-
-  -- Headers
+  -- Headers (only the # symbols)
   safe_matchadd("SimpleMarkdownH1", "^#\\s")
   safe_matchadd("SimpleMarkdownH2", "^##\\s")
   safe_matchadd("SimpleMarkdownH3", "^###\\s")
@@ -223,23 +207,14 @@ function M.apply_highlights()
   safe_matchadd("SimpleMarkdownH5", "^#####\\s")
   safe_matchadd("SimpleMarkdownH6", "^######\\s")
 
-  -- List markers
-  safe_matchadd("SimpleMarkdownListMarker", "^\\s*[-*+]\\s")
-  safe_matchadd("SimpleMarkdownListMarker", "^\\s*\\d\\+\\.")
+  -- Code blocks (fenced) - simplified
+  safe_matchadd("SimpleMarkdownCodeBlockBorder", "^```")
+  safe_matchadd("SimpleMarkdownCodeBlockBorder", "^~~~")
 
-  -- Emphasis and strong (simplified)
-  safe_matchadd("SimpleMarkdownStrong", "\\*\\*[^*]*\\*\\*")
-  safe_matchadd("SimpleMarkdownStrong", "__[^_]*__")
-  safe_matchadd("SimpleMarkdownEmphasis", "\\*[^*]*\\*")
-  safe_matchadd("SimpleMarkdownEmphasis", "_[^_]*_")
-
-  -- Links (simplified patterns)
-  safe_matchadd("SimpleMarkdownLinkText", "\\[[^\\]]*\\]")
-
-  -- Add regular highlighting for horizontal lines in edit mode (show raw text)
-  safe_matchadd("SimpleMarkdownHorizontalLine", "^%s*%-%-%-+%s*$")
-  safe_matchadd("SimpleMarkdownHorizontalLine", "^%s*%*%*%*+%s*$")
-  safe_matchadd("SimpleMarkdownHorizontalLine", "^%s*___+%s*$")
+  -- Basic horizontal lines in edit mode (show raw text)
+  safe_matchadd("SimpleMarkdownHorizontalLine", "^---\\+$")
+  safe_matchadd("SimpleMarkdownHorizontalLine", "^\\*\\*\\*\\+$")
+  safe_matchadd("SimpleMarkdownHorizontalLine", "^___\\+$")
 end
 
 -- Alternative approach using autocmds for more robust highlighting

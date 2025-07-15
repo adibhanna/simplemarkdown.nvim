@@ -117,33 +117,24 @@ function M.apply_preview_concealing(bufnr)
             })
         end
 
-        -- Handle checkboxes with virtual text - explicit pattern to cover entire checkbox
-        -- Look for [x], [X], or [ ] patterns
-        local checkbox_start, checkbox_end = line:find("%[[ xX]%]")
+        -- Handle checkboxes with virtual text - match checkbox with space directly
+        -- Look for [x], [X], or [ ] patterns followed by a space
+        local checkbox_start, checkbox_end = line:find("%[[ xX]%]%s")
         if checkbox_start then
-            local checkbox_text = line:sub(checkbox_start, checkbox_end)
+            local checkbox_text = line:sub(checkbox_start, checkbox_start + 2) -- Just the [x] part
 
             if checkbox_text:match("%[x%]") or checkbox_text:match("%[X%]") then
-                -- Completed task: show check icon (no background)
-                -- Find the space after the checkbox to include it in the overlay
-                local space_pos = checkbox_end + 1
-                while space_pos <= #line and line:sub(space_pos, space_pos) == " " do
-                    space_pos = space_pos + 1
-                end
+                -- Completed task: show check icon
                 vim.api.nvim_buf_set_extmark(bufnr, ns_id_checkbox, i - 1, checkbox_start - 1, {
-                    end_col = space_pos, -- end_col is exclusive, so we don't subtract 1
+                    end_col = checkbox_end, -- Cover entire checkbox + space (end_col is exclusive)
                     virt_text = { { "✓ ", "MarkdownTodoCheckedClean" } },
                     virt_text_pos = "overlay",
                     hl_mode = "combine"
                 })
             else
                 -- Uncompleted task: hide the checkbox completely
-                local space_pos = checkbox_end + 1
-                while space_pos <= #line and line:sub(space_pos, space_pos) == " " do
-                    space_pos = space_pos + 1
-                end
                 vim.api.nvim_buf_set_extmark(bufnr, ns_id_checkbox, i - 1, checkbox_start - 1, {
-                    end_col = space_pos, -- end_col is exclusive, so we don't subtract 1
+                    end_col = checkbox_end, -- Cover entire checkbox + space (end_col is exclusive)
                     virt_text = { { "  ", "MarkdownTodoUnchecked" } },
                     virt_text_pos = "overlay",
                     hl_mode = "combine"
