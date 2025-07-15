@@ -157,17 +157,3 @@ require('simplemarkdown').setup({
   headers = { enable = false },  -- Disable header styling
 })
 ```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 🙏 Acknowledgments
-
-- Inspired by the need for better markdown reading experience in Neovim
-- Color palette inspired by the Tokyo Night theme
-- Thanks to the Neovim community for their excellent plugin ecosystem 

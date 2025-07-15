@@ -117,6 +117,11 @@ local function define_highlight_groups()
   safe_highlight("SimpleMarkdownLinkText", {
     fg = colors.normal
   })
+
+  -- Horizontal lines/rules
+  safe_highlight("SimpleMarkdownHorizontalLine", {
+    fg = colors.muted or colors.subtle
+  })
 end
 
 -- Apply syntax highlighting using buffer-based approach
@@ -168,6 +173,13 @@ function M.apply_highlights()
 
   -- Links (simplified patterns)
   safe_matchadd("SimpleMarkdownLinkText", "\\[[^\\]]*\\]")
+
+  -- Horizontal lines/rules (thematic breaks)
+  if M.config and M.config.horizontal_lines and M.config.horizontal_lines.enable then
+    safe_matchadd("SimpleMarkdownHorizontalLine", "^\\s*---\\+\\s*$")
+    safe_matchadd("SimpleMarkdownHorizontalLine", "^\\s*\\*\\*\\*\\+\\s*$")
+    safe_matchadd("SimpleMarkdownHorizontalLine", "^\\s*___\\+\\s*$")
+  end
 end
 
 -- Alternative approach using autocmds for more robust highlighting

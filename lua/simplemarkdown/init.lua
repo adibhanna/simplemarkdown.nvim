@@ -28,6 +28,12 @@ M.config = {
         indent_guides = true,
     },
 
+    -- Horizontal lines/rules
+    horizontal_lines = {
+        enable = true,
+        style = "line", -- "line" or "highlight"
+    },
+
     -- Enable/disable the plugin
     enabled = true,
 }
