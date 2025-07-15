@@ -28,7 +28,7 @@ Then test with:
 - 💻 **Code Blocks**: Syntax highlighting for fenced code blocks
 - 📏 **Horizontal Lines**: Full-width visual lines for `---`, `***`, `___`
 - 🔄 **Preview Mode**: Toggle between rendered preview and edit modes
-- 📄 **Multi-format**: Supports both `.md` and `.mdc` files
+- 📄 **Format**: Supports `.md` files
 
 ## Preview Mode
 
@@ -129,7 +129,7 @@ require("simplemarkdown").setup({
 ## Usage
 
 ### Basic Usage
-1. Open any `.md` or `.mdc` file
+1. Open any `.md` file
 2. The plugin automatically applies highlighting
 3. By default, files open in **preview mode**
 4. Use `:SimpleMarkdownToggle` to switch to **edit mode**
@@ -149,11 +149,9 @@ require("simplemarkdown").toggle_preview()
 
 ## Debugging
 
-If you're having issues with `.mdc` files:
+If you're having issues with highlighting:
 
-1. Check filetype detection: `:SimpleMarkdownDebug`
-2. Force markdown treatment: `:SimpleMarkdownForceMDC`
-3. Manual highlighting: `:SimpleMarkdownForceHighlight`
+1. Manual highlighting: `:SimpleMarkdownForceHighlight`
 
 ## License
 

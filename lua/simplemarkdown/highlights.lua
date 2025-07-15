@@ -126,7 +126,7 @@ local function define_highlight_groups()
 end
 
 -- Create full-width horizontal lines using virtual text
-local function apply_horizontal_lines()
+function M.apply_horizontal_lines()
   if not (M.config and M.config.horizontal_lines and M.config.horizontal_lines.enable) then
     return
   end
@@ -168,10 +168,15 @@ function M.apply_highlights()
     preview_mode = preview.get_mode(buf) == "preview"
   end
 
-  -- Clear existing matches only if not in preview mode
-  if not preview_mode then
-    pcall(vim.fn.clearmatches)
+  -- Don't apply matchadd highlights in preview mode (syntax concealing handles it)
+  if preview_mode then
+    -- Apply horizontal lines only in preview mode
+    M.apply_horizontal_lines()
+    return
   end
+
+  -- Clear existing matches only if not in preview mode
+  pcall(vim.fn.clearmatches)
 
   -- Use a more robust approach with protected calls
   local function safe_matchadd(group, pattern)
@@ -182,67 +187,59 @@ function M.apply_highlights()
     end
   end
 
-  -- Only apply matchadd highlighting if not in preview mode
-  if not preview_mode then
-    -- Todo lists with checkboxes (simplified and reliable patterns)
-    safe_matchadd("SimpleMarkdownTodoUnchecked", "\\[ \\]")
-    safe_matchadd("SimpleMarkdownTodoUnchecked", "\\[\\s\\]")
-    safe_matchadd("SimpleMarkdownTodoChecked", "\\[x\\]")
-    safe_matchadd("SimpleMarkdownTodoChecked", "\\[X\\]")
+  -- Todo lists with checkboxes (simplified and reliable patterns)
+  safe_matchadd("SimpleMarkdownTodoUnchecked", "\\[ \\]")
+  safe_matchadd("SimpleMarkdownTodoUnchecked", "\\[\\s\\]")
+  safe_matchadd("SimpleMarkdownTodoChecked", "\\[x\\]")
+  safe_matchadd("SimpleMarkdownTodoChecked", "\\[X\\]")
 
-    -- Dates (improved patterns for full date contexts)
-    safe_matchadd("SimpleMarkdownTodoDate", "\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}")
-    safe_matchadd("SimpleMarkdownTodoDate", "\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}\\s\\+\\d\\{1,2\\}:\\d\\{2\\}")
-    safe_matchadd("SimpleMarkdownTodoDate", "\\d\\{1,2\\}:\\d\\{2\\}")
+  -- Dates (improved patterns for full date contexts)
+  safe_matchadd("SimpleMarkdownTodoDate", "\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}")
+  safe_matchadd("SimpleMarkdownTodoDate", "\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}\\s\\+\\d\\{1,2\\}:\\d\\{2\\}")
+  safe_matchadd("SimpleMarkdownTodoDate", "\\d\\{1,2\\}:\\d\\{2\\}")
 
-    -- Full date patterns (Due: Monday June 17, 2025)
-    safe_matchadd("SimpleMarkdownTodoDate", "Due:\\s\\+\\w\\+\\s\\+\\w\\+\\s\\+\\d\\+,\\s\\+\\d\\{4\\}")
-    safe_matchadd("SimpleMarkdownTodoDate", "Created:\\s\\+\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}\\s\\+\\d\\{1,2\\}:\\d\\{2\\}")
+  -- Full date patterns (Due: Monday June 17, 2025)
+  safe_matchadd("SimpleMarkdownTodoDate", "Due:\\s\\+\\w\\+\\s\\+\\w\\+\\s\\+\\d\\+,\\s\\+\\d\\{4\\}")
+  safe_matchadd("SimpleMarkdownTodoDate", "Created:\\s\\+\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}\\s\\+\\d\\{1,2\\}:\\d\\{2\\}")
 
-    -- Individual date components (as fallback)
-    safe_matchadd("SimpleMarkdownTodoDate",
-      "\\(Monday\\|Tuesday\\|Wednesday\\|Thursday\\|Friday\\|Saturday\\|Sunday\\)\\s\\+\\(January\\|February\\|March\\|April\\|May\\|June\\|July\\|August\\|September\\|October\\|November\\|December\\)\\s\\+\\d\\+,\\s\\+\\d\\{4\\}")
-    safe_matchadd("SimpleMarkdownTodoDate",
-      "\\(Jan\\|Feb\\|Mar\\|Apr\\|May\\|Jun\\|Jul\\|Aug\\|Sep\\|Oct\\|Nov\\|Dec\\)\\s\\+\\d\\+,\\s\\+\\d\\{4\\}")
+  -- Individual date components (as fallback)
+  safe_matchadd("SimpleMarkdownTodoDate",
+    "\\(Monday\\|Tuesday\\|Wednesday\\|Thursday\\|Friday\\|Saturday\\|Sunday\\)\\s\\+\\(January\\|February\\|March\\|April\\|May\\|June\\|July\\|August\\|September\\|October\\|November\\|December\\)\\s\\+\\d\\+,\\s\\+\\d\\{4\\}")
+  safe_matchadd("SimpleMarkdownTodoDate",
+    "\\(Jan\\|Feb\\|Mar\\|Apr\\|May\\|Jun\\|Jul\\|Aug\\|Sep\\|Oct\\|Nov\\|Dec\\)\\s\\+\\d\\+,\\s\\+\\d\\{4\\}")
 
-    -- Time patterns
-    safe_matchadd("SimpleMarkdownTodoDate", "@\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}")
+  -- Time patterns
+  safe_matchadd("SimpleMarkdownTodoDate", "@\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}")
 
-    -- Code blocks (fenced) - simplified
-    safe_matchadd("SimpleMarkdownCodeBlockBorder", "^```")
-    safe_matchadd("SimpleMarkdownCodeBlockBorder", "^~~~")
+  -- Code blocks (fenced) - simplified
+  safe_matchadd("SimpleMarkdownCodeBlockBorder", "^```")
+  safe_matchadd("SimpleMarkdownCodeBlockBorder", "^~~~")
 
-    -- Headers
-    safe_matchadd("SimpleMarkdownH1", "^#\\s")
-    safe_matchadd("SimpleMarkdownH2", "^##\\s")
-    safe_matchadd("SimpleMarkdownH3", "^###\\s")
-    safe_matchadd("SimpleMarkdownH4", "^####\\s")
-    safe_matchadd("SimpleMarkdownH5", "^#####\\s")
-    safe_matchadd("SimpleMarkdownH6", "^######\\s")
+  -- Headers
+  safe_matchadd("SimpleMarkdownH1", "^#\\s")
+  safe_matchadd("SimpleMarkdownH2", "^##\\s")
+  safe_matchadd("SimpleMarkdownH3", "^###\\s")
+  safe_matchadd("SimpleMarkdownH4", "^####\\s")
+  safe_matchadd("SimpleMarkdownH5", "^#####\\s")
+  safe_matchadd("SimpleMarkdownH6", "^######\\s")
 
-    -- List markers
-    safe_matchadd("SimpleMarkdownListMarker", "^\\s*[-*+]\\s")
-    safe_matchadd("SimpleMarkdownListMarker", "^\\s*\\d\\+\\.")
+  -- List markers
+  safe_matchadd("SimpleMarkdownListMarker", "^\\s*[-*+]\\s")
+  safe_matchadd("SimpleMarkdownListMarker", "^\\s*\\d\\+\\.")
 
-    -- Emphasis and strong (simplified)
-    safe_matchadd("SimpleMarkdownStrong", "\\*\\*[^*]*\\*\\*")
-    safe_matchadd("SimpleMarkdownStrong", "__[^_]*__")
-    safe_matchadd("SimpleMarkdownEmphasis", "\\*[^*]*\\*")
-    safe_matchadd("SimpleMarkdownEmphasis", "_[^_]*_")
+  -- Emphasis and strong (simplified)
+  safe_matchadd("SimpleMarkdownStrong", "\\*\\*[^*]*\\*\\*")
+  safe_matchadd("SimpleMarkdownStrong", "__[^_]*__")
+  safe_matchadd("SimpleMarkdownEmphasis", "\\*[^*]*\\*")
+  safe_matchadd("SimpleMarkdownEmphasis", "_[^_]*_")
 
-    -- Links (simplified patterns)
-    safe_matchadd("SimpleMarkdownLinkText", "\\[[^\\]]*\\]")
-  end
+  -- Links (simplified patterns)
+  safe_matchadd("SimpleMarkdownLinkText", "\\[[^\\]]*\\]")
 
-  -- Always apply horizontal lines (works in both modes)
-  apply_horizontal_lines()
-
-  -- Add regular highlighting for horizontal lines as fallback
-  if not preview_mode then
-    safe_matchadd("SimpleMarkdownHorizontalLine", "^%s*%-%-%-+%s*$")
-    safe_matchadd("SimpleMarkdownHorizontalLine", "^%s*%*%*%*+%s*$")
-    safe_matchadd("SimpleMarkdownHorizontalLine", "^%s*___+%s*$")
-  end
+  -- Add regular highlighting for horizontal lines in edit mode (show raw text)
+  safe_matchadd("SimpleMarkdownHorizontalLine", "^%s*%-%-%-+%s*$")
+  safe_matchadd("SimpleMarkdownHorizontalLine", "^%s*%*%*%*+%s*$")
+  safe_matchadd("SimpleMarkdownHorizontalLine", "^%s*___+%s*$")
 end
 
 -- Alternative approach using autocmds for more robust highlighting
@@ -251,7 +248,7 @@ function M.setup_autocmds()
 
   vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter", "TextChanged", "TextChangedI" }, {
     group = group,
-    pattern = { "*.md", "*.mdc" },
+    pattern = { "*.md" },
     callback = function()
       -- Small delay to allow buffer to stabilize
       vim.defer_fn(function()

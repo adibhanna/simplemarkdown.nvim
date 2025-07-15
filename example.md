@@ -1,5 +1,4 @@
 # tasks
-
 Created: 2025-06-13 16:51
 Tags:
 #work #tasks
@@ -14,9 +13,8 @@ Due: Monday June 17, 2025
   - Identify what is *missing* in the code
   - Finalize the `API implementation`
   - Prepare an API call that I can test `e2e` with
-
 - [x] Analyze Pulse specs and rewrite them in markdown for cursor
-- [ ] Create **PDRs** out of the specs
+- [x] Create **PDRs** out of the specs
 
 ---
 
@@ -34,8 +32,6 @@ Using underscores:
 ___
 
 Multiple characters work too:
-----
-*****
 ______
 
 ## Preview Mode Features
@@ -51,4 +47,3 @@ In **preview mode**, you'll see:
 
 In **edit mode**, you'll see all the raw markdown syntax.
 
-**Toggle between modes using `<leader>mp` or `:SimpleMarkdownToggle`**

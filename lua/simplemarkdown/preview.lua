@@ -20,16 +20,30 @@ function M.apply_preview_concealing(bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
 
     -- Set concealing options (these are window options, not buffer options)
-    vim.api.nvim_win_set_option(0, 'conceallevel', M.config.conceal_level or 2)
-    vim.api.nvim_win_set_option(0, 'concealcursor', M.config.show_raw_on_cursor and 'n' or 'nvc')
+    vim.api.nvim_win_set_option(0, 'conceallevel', 2)
+    vim.api.nvim_win_set_option(0, 'concealcursor', 'n')
 
     -- Clear any existing syntax and set up fresh concealing
     vim.cmd('syntax clear')
     vim.cmd('syntax sync fromstart')
 
+    -- Ensure markdown filetype is set
+    vim.bo[bufnr].filetype = "markdown"
+
     -- Set up syntax concealing for markdown elements
     vim.cmd([[
-    " Headers - conceal the # symbols and add spacing
+
+    " Todo checkboxes - HIGH PRIORITY (must be first)
+    syntax match MarkdownTodoChecked /\[x\]/ conceal cchar=●
+    syntax match MarkdownTodoChecked /\[X\]/ conceal cchar=●
+    syntax match MarkdownTodoUnchecked /\[ \]/ conceal cchar=○
+    syntax match MarkdownTodoUnchecked /\[\s\]/ conceal cchar=○
+
+    " Completed task lines - strikethrough (must come after checkbox patterns)
+    syntax match MarkdownCompletedTask /^.*\[x\].*$/ contains=MarkdownTodoChecked
+    syntax match MarkdownCompletedTask /^.*\[X\].*$/ contains=MarkdownTodoChecked
+
+    " Headers - conceal the # symbols
     syntax match MarkdownH1 /^#\s/ conceal contained
     syntax match MarkdownH2 /^##\s/ conceal contained
     syntax match MarkdownH3 /^###\s/ conceal contained
@@ -49,27 +63,17 @@ function M.apply_preview_concealing(bufnr)
     syntax region MarkdownBold start=/\*\*/ end=/\*\*/ concealends oneline
     syntax region MarkdownBold start=/__/ end=/__/ concealends oneline
 
-    " Italic text - conceal the * markers
-    syntax region MarkdownItalic start=/\*/ end=/\*/ concealends oneline
-    syntax region MarkdownItalic start=/_/ end=/_/ concealends oneline
+    " Italic text - disabled to avoid weird characters
+    " syntax region MarkdownItalic start=/\*/ end=/\*/ concealends oneline
+    " syntax region MarkdownItalic start=/_/ end=/_/ concealends oneline
 
     " Inline code - conceal the ` markers
     syntax region MarkdownInlineCode start=/`/ end=/`/ concealends oneline
 
-    " Code blocks - conceal the ``` markers
-    syntax match MarkdownCodeBlockStart /^```.*$/ conceal cchar=┌
-    syntax match MarkdownCodeBlockEnd /^```$/ conceal cchar=└
-
-    " List markers - replace with prettier symbols
-    syntax match MarkdownListMarker /^\s*-\s/ conceal cchar=•
-    syntax match MarkdownListMarker /^\s*\*\s/ conceal cchar=▪
-    syntax match MarkdownListMarker /^\s*+\s/ conceal cchar=▫
-
-    " Todo checkboxes - use monochrome symbols
-    syntax match MarkdownTodoChecked /\[x\]/ conceal cchar=●
-    syntax match MarkdownTodoChecked /\[X\]/ conceal cchar=●
-    syntax match MarkdownTodoUnchecked /\[ \]/ conceal cchar=○
-    syntax match MarkdownTodoUnchecked /\[\s\]/ conceal cchar=○
+    " List markers - now handled by virtual text for proper spacing
+    " syntax match MarkdownListMarker /^\s*-\s/ conceal
+    " syntax match MarkdownListMarker /^\s*\*\s/ conceal
+    " syntax match MarkdownListMarker /^\s*+\s/ conceal
 
     " Links - conceal the URL part
     syntax region MarkdownLink start=/\[/ end=/\]/ concealends nextgroup=MarkdownLinkURL
@@ -80,33 +84,69 @@ function M.apply_preview_concealing(bufnr)
     vim.cmd([[
     highlight link MarkdownHeaderLine Title
     highlight link MarkdownBold Bold
-    highlight link MarkdownItalic Italic
     highlight link MarkdownInlineCode String
-    highlight link MarkdownCodeBlockStart Comment
-    highlight link MarkdownCodeBlockEnd Comment
     highlight link MarkdownListMarker Operator
     highlight link MarkdownTodoChecked DiffAdd
     highlight link MarkdownTodoUnchecked DiffDelete
     highlight link MarkdownLink Underlined
+
+    " Completed tasks with strikethrough
+    highlight MarkdownCompletedTask gui=strikethrough cterm=strikethrough
   ]])
 
-    -- Add spacing after headers using virtual text
+    -- Force redraw to ensure concealing takes effect
+    vim.cmd('redraw!')
+
+    -- Double-check concealing is active
+    if vim.api.nvim_win_get_option(0, 'conceallevel') < 2 then
+        vim.api.nvim_win_set_option(0, 'conceallevel', 2)
+    end
+
+    -- Add spacing after headers and fix list markers using virtual text
     local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-    local ns_id = vim.api.nvim_create_namespace("SimpleMarkdownHeaderSpacing")
+    local ns_id_header = vim.api.nvim_create_namespace("SimpleMarkdownHeaderSpacing")
+    local ns_id_list = vim.api.nvim_create_namespace("SimpleMarkdownListMarkers")
 
     -- Clear existing virtual text
-    vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+    vim.api.nvim_buf_clear_namespace(bufnr, ns_id_header, 0, -1)
+    vim.api.nvim_buf_clear_namespace(bufnr, ns_id_list, 0, -1)
 
     for i, line in ipairs(lines) do
         -- Check if line is a header
         if line:match("^#+%s") then
             -- Add virtual text for spacing after headers
-            vim.api.nvim_buf_set_extmark(bufnr, ns_id, i - 1, 0, {
-                virt_lines = { { { "" } } }, -- Add empty line after header
+            vim.api.nvim_buf_set_extmark(bufnr, ns_id_header, i - 1, 0, {
+                virt_lines = { { { "" } } }, -- Add one empty line after header
                 virt_lines_above = false,
             })
         end
+
+        -- Handle list markers with proper spacing
+        local list_start, list_end = line:find("^%s*[-*+]%s")
+        if list_start then
+            local marker_text = line:sub(list_start, list_end)
+            local replacement_char = "• " -- Default bullet with space
+
+            if marker_text:match("%-") then
+                replacement_char = "• "
+            elseif marker_text:match("%*") then
+                replacement_char = "▪ "
+            elseif marker_text:match("%+") then
+                replacement_char = "▫ "
+            end
+
+            -- Replace the list marker with virtual text
+            vim.api.nvim_buf_set_extmark(bufnr, ns_id_list, i - 1, list_start - 1, {
+                end_col = list_end,
+                virt_text = { { replacement_char, "MarkdownListMarker" } },
+                virt_text_pos = "overlay",
+                hl_mode = "combine"
+            })
+        end
     end
+
+    -- Apply horizontal lines in preview mode
+    require("simplemarkdown.highlights").apply_horizontal_lines()
 end
 
 -- Remove preview mode concealing
@@ -118,25 +158,15 @@ function M.remove_preview_concealing(bufnr)
     vim.api.nvim_win_set_option(0, 'concealcursor', '')
 
     -- Clear syntax concealing
-    vim.cmd([[
-    syntax clear MarkdownH1
-    syntax clear MarkdownH2
-    syntax clear MarkdownH3
-    syntax clear MarkdownH4
-    syntax clear MarkdownH5
-    syntax clear MarkdownH6
-    syntax clear MarkdownHeaderLine
-    syntax clear MarkdownBold
-    syntax clear MarkdownItalic
-    syntax clear MarkdownCodeBlockStart
-    syntax clear MarkdownCodeBlockEnd
-    syntax clear MarkdownInlineCode
-    syntax clear MarkdownLink
-    syntax clear MarkdownLinkURL
-    syntax clear MarkdownListMarker
-    syntax clear MarkdownTodoChecked
-    syntax clear MarkdownTodoUnchecked
-  ]])
+    vim.cmd('syntax clear')
+
+    -- Clear virtual text spacing, horizontal lines, and list markers
+    local ns_id_header = vim.api.nvim_create_namespace("SimpleMarkdownHeaderSpacing")
+    local ns_id_horizontal = vim.api.nvim_create_namespace("SimpleMarkdownHorizontalLines")
+    local ns_id_list = vim.api.nvim_create_namespace("SimpleMarkdownListMarkers")
+    vim.api.nvim_buf_clear_namespace(bufnr, ns_id_header, 0, -1)
+    vim.api.nvim_buf_clear_namespace(bufnr, ns_id_horizontal, 0, -1)
+    vim.api.nvim_buf_clear_namespace(bufnr, ns_id_list, 0, -1)
 
     -- Reset syntax to default markdown
     vim.cmd('set syntax=markdown')
@@ -195,6 +225,8 @@ function M.setup(config)
         end,
     })
 
+
+
     -- Add user commands
     vim.api.nvim_create_user_command('SimpleMarkdownToggle', function()
         M.toggle_mode()
@@ -211,6 +243,26 @@ function M.setup(config)
         M.remove_preview_concealing()
         require("simplemarkdown.highlights").apply_highlights()
     end, { desc = "Switch to markdown edit mode" })
+
+    vim.api.nvim_create_user_command('SimpleMarkdownRefresh', function()
+        local bufnr = vim.api.nvim_get_current_buf()
+        if M.get_mode(bufnr) == "preview" then
+            M.apply_preview_concealing(bufnr)
+        end
+        require("simplemarkdown.highlights").apply_highlights()
+    end, { desc = "Refresh markdown highlighting" })
+
+    vim.api.nvim_create_user_command('SimpleMarkdownDebugConceal', function()
+        local bufnr = vim.api.nvim_get_current_buf()
+        print("Conceallevel: " .. vim.api.nvim_win_get_option(0, 'conceallevel'))
+        print("Concealcursor: " .. vim.api.nvim_win_get_option(0, 'concealcursor'))
+        print("Filetype: " .. vim.bo[bufnr].filetype)
+        print("Mode: " .. M.get_mode(bufnr))
+
+        -- Force apply concealing
+        M.apply_preview_concealing(bufnr)
+        print("Concealing reapplied")
+    end, { desc = "Debug concealing settings" })
 end
 
 return M
