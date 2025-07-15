@@ -79,7 +79,7 @@ function M.apply_preview_concealing(bufnr)
     highlight link MarkdownTodoUnchecked DiffDelete
 
     " Links - ensure they are underlined
-    highlight MarkdownLink gui=underline cterm=underline
+    highlight link MarkdownLink SimpleMarkdownLink
 
     " Clean check mark without background
     highlight MarkdownTodoCheckedClean guifg=green ctermfg=green
@@ -117,7 +117,7 @@ function M.apply_preview_concealing(bufnr)
             })
         end
 
-        -- Handle checkboxes with virtual text - simple approach
+        -- Handle checkboxes with virtual text - explicit pattern to cover entire checkbox
         -- Look for [x], [X], or [ ] patterns
         local checkbox_start, checkbox_end = line:find("%[[ xX]%]")
         if checkbox_start then
@@ -125,16 +125,25 @@ function M.apply_preview_concealing(bufnr)
 
             if checkbox_text:match("%[x%]") or checkbox_text:match("%[X%]") then
                 -- Completed task: show check icon (no background)
+                -- Find the space after the checkbox to include it in the overlay
+                local space_pos = checkbox_end + 1
+                while space_pos <= #line and line:sub(space_pos, space_pos) == " " do
+                    space_pos = space_pos + 1
+                end
                 vim.api.nvim_buf_set_extmark(bufnr, ns_id_checkbox, i - 1, checkbox_start - 1, {
-                    end_col = checkbox_end, -- Use the actual end position from find()
+                    end_col = space_pos, -- end_col is exclusive, so we don't subtract 1
                     virt_text = { { "✓ ", "MarkdownTodoCheckedClean" } },
                     virt_text_pos = "overlay",
                     hl_mode = "combine"
                 })
             else
                 -- Uncompleted task: hide the checkbox completely
+                local space_pos = checkbox_end + 1
+                while space_pos <= #line and line:sub(space_pos, space_pos) == " " do
+                    space_pos = space_pos + 1
+                end
                 vim.api.nvim_buf_set_extmark(bufnr, ns_id_checkbox, i - 1, checkbox_start - 1, {
-                    end_col = checkbox_end, -- Use the actual end position from find()
+                    end_col = space_pos, -- end_col is exclusive, so we don't subtract 1
                     virt_text = { { "  ", "MarkdownTodoUnchecked" } },
                     virt_text_pos = "overlay",
                     hl_mode = "combine"
