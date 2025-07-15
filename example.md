@@ -10,10 +10,13 @@ Tags:
 Due: Monday June 17, 2025
 
 - [x] Analyze Pulse specs and rewrite them in markdown for cursor
-  - Create PDRs out of the specs
-  - Identify what is missing in the code
-  - Finalize the API implementation
-  - Prepare an API call that I can test e2e with
+  - Create **PDRs** out of the specs
+  - Identify what is *missing* in the code
+  - Finalize the `API implementation`
+  - Prepare an API call that I can test `e2e` with
+
+- [x] Analyze Pulse specs and rewrite them in markdown for cursor
+- [ ] Create **PDRs** out of the specs
 
 ---
 
@@ -33,4 +36,19 @@ ___
 Multiple characters work too:
 ----
 *****
-______ 
+______
+
+## Preview Mode Features
+
+In **preview mode**, you'll see:
+- Headers without the # symbols
+- **Bold text** without the ** markers
+- *Italic text* without the * markers
+- `Inline code` without the ` markers
+- Beautiful bullets (• ▪ ▫) instead of - * +
+- Checkboxes as ✓ and □ instead of [x] and [ ]
+- Links like [this](http://example.com) showing only the text
+
+In **edit mode**, you'll see all the raw markdown syntax.
+
+**Toggle between modes using `<leader>mp` or `:SimpleMarkdownToggle`**

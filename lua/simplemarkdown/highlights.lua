@@ -42,17 +42,18 @@ local function define_highlight_groups()
   })
 
   safe_highlight("SimpleMarkdownTodoUnchecked", {
-    fg = colors.muted or colors.subtle
+    fg = colors.keyword or colors.normal,
+    bold = true
   })
 
   safe_highlight("SimpleMarkdownTodoChecked", {
-    fg = colors.subtle,
-    italic = true
+    fg = colors.string or colors.normal,
+    bold = true
   })
 
   safe_highlight("SimpleMarkdownTodoDate", {
-    fg = colors.muted or colors.subtle,
-    italic = true
+    fg = colors.identifier or colors.keyword or colors.normal,
+    bold = true
   })
 
   -- Code block highlights (subtle)
@@ -120,16 +121,57 @@ local function define_highlight_groups()
 
   -- Horizontal lines/rules
   safe_highlight("SimpleMarkdownHorizontalLine", {
-    fg = colors.muted or colors.subtle
+    fg = colors.subtle
   })
+end
+
+-- Create full-width horizontal lines using virtual text
+local function apply_horizontal_lines()
+  if not (M.config and M.config.horizontal_lines and M.config.horizontal_lines.enable) then
+    return
+  end
+
+  local buf = vim.api.nvim_get_current_buf()
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local ns_id = vim.api.nvim_create_namespace("SimpleMarkdownHorizontalLines")
+
+  -- Clear existing virtual text
+  vim.api.nvim_buf_clear_namespace(buf, ns_id, 0, -1)
+
+  -- Get window width for full-width line
+  local win_width = vim.api.nvim_win_get_width(0)
+  local line_char = string.rep("─", math.max(win_width - 2, 3))
+
+  for i, line in ipairs(lines) do
+    -- Check if line matches horizontal line patterns
+    if line:match("^%s*%-%-%-+%s*$") or
+        line:match("^%s*%*%*%*+%s*$") or
+        line:match("^%s*___+%s*$") then
+      -- Add virtual text to replace the line
+      vim.api.nvim_buf_set_extmark(buf, ns_id, i - 1, 0, {
+        virt_text = { { line_char, "SimpleMarkdownHorizontalLine" } },
+        virt_text_pos = "overlay",
+        hl_mode = "combine"
+      })
+    end
+  end
 end
 
 -- Apply syntax highlighting using buffer-based approach
 function M.apply_highlights()
   local buf = vim.api.nvim_get_current_buf()
 
-  -- Clear existing matches
-  pcall(vim.fn.clearmatches)
+  -- Check if we're in preview mode
+  local preview_mode = false
+  if M.config and M.config.preview_mode and M.config.preview_mode.enable then
+    local preview = require("simplemarkdown.preview")
+    preview_mode = preview.get_mode(buf) == "preview"
+  end
+
+  -- Clear existing matches only if not in preview mode
+  if not preview_mode then
+    pcall(vim.fn.clearmatches)
+  end
 
   -- Use a more robust approach with protected calls
   local function safe_matchadd(group, pattern)
@@ -140,45 +182,66 @@ function M.apply_highlights()
     end
   end
 
-  -- Todo lists with checkboxes (simplified patterns)
-  safe_matchadd("SimpleMarkdownTodoUnchecked", "^\\s*[-*+]\\s*\\[\\s\\]")
-  safe_matchadd("SimpleMarkdownTodoChecked", "^\\s*[-*+]\\s*\\[x\\]")
-  safe_matchadd("SimpleMarkdownTodoChecked", "^\\s*[-*+]\\s*\\[X\\]")
+  -- Only apply matchadd highlighting if not in preview mode
+  if not preview_mode then
+    -- Todo lists with checkboxes (simplified and reliable patterns)
+    safe_matchadd("SimpleMarkdownTodoUnchecked", "\\[ \\]")
+    safe_matchadd("SimpleMarkdownTodoUnchecked", "\\[\\s\\]")
+    safe_matchadd("SimpleMarkdownTodoChecked", "\\[x\\]")
+    safe_matchadd("SimpleMarkdownTodoChecked", "\\[X\\]")
 
-  -- Dates (simplified patterns)
-  safe_matchadd("SimpleMarkdownTodoDate", "\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}")
-  safe_matchadd("SimpleMarkdownTodoDate", "@\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}")
+    -- Dates (improved patterns for full date contexts)
+    safe_matchadd("SimpleMarkdownTodoDate", "\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}")
+    safe_matchadd("SimpleMarkdownTodoDate", "\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}\\s\\+\\d\\{1,2\\}:\\d\\{2\\}")
+    safe_matchadd("SimpleMarkdownTodoDate", "\\d\\{1,2\\}:\\d\\{2\\}")
 
-  -- Code blocks (fenced) - simplified
-  safe_matchadd("SimpleMarkdownCodeBlockBorder", "^```")
-  safe_matchadd("SimpleMarkdownCodeBlockBorder", "^~~~")
+    -- Full date patterns (Due: Monday June 17, 2025)
+    safe_matchadd("SimpleMarkdownTodoDate", "Due:\\s\\+\\w\\+\\s\\+\\w\\+\\s\\+\\d\\+,\\s\\+\\d\\{4\\}")
+    safe_matchadd("SimpleMarkdownTodoDate", "Created:\\s\\+\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}\\s\\+\\d\\{1,2\\}:\\d\\{2\\}")
 
-  -- Headers
-  safe_matchadd("SimpleMarkdownH1", "^#\\s")
-  safe_matchadd("SimpleMarkdownH2", "^##\\s")
-  safe_matchadd("SimpleMarkdownH3", "^###\\s")
-  safe_matchadd("SimpleMarkdownH4", "^####\\s")
-  safe_matchadd("SimpleMarkdownH5", "^#####\\s")
-  safe_matchadd("SimpleMarkdownH6", "^######\\s")
+    -- Individual date components (as fallback)
+    safe_matchadd("SimpleMarkdownTodoDate",
+      "\\(Monday\\|Tuesday\\|Wednesday\\|Thursday\\|Friday\\|Saturday\\|Sunday\\)\\s\\+\\(January\\|February\\|March\\|April\\|May\\|June\\|July\\|August\\|September\\|October\\|November\\|December\\)\\s\\+\\d\\+,\\s\\+\\d\\{4\\}")
+    safe_matchadd("SimpleMarkdownTodoDate",
+      "\\(Jan\\|Feb\\|Mar\\|Apr\\|May\\|Jun\\|Jul\\|Aug\\|Sep\\|Oct\\|Nov\\|Dec\\)\\s\\+\\d\\+,\\s\\+\\d\\{4\\}")
 
-  -- List markers
-  safe_matchadd("SimpleMarkdownListMarker", "^\\s*[-*+]\\s")
-  safe_matchadd("SimpleMarkdownListMarker", "^\\s*\\d\\+\\.")
+    -- Time patterns
+    safe_matchadd("SimpleMarkdownTodoDate", "@\\d\\{4\\}-\\d\\{2\\}-\\d\\{2\\}")
 
-  -- Emphasis and strong (simplified)
-  safe_matchadd("SimpleMarkdownStrong", "\\*\\*[^*]*\\*\\*")
-  safe_matchadd("SimpleMarkdownStrong", "__[^_]*__")
-  safe_matchadd("SimpleMarkdownEmphasis", "\\*[^*]*\\*")
-  safe_matchadd("SimpleMarkdownEmphasis", "_[^_]*_")
+    -- Code blocks (fenced) - simplified
+    safe_matchadd("SimpleMarkdownCodeBlockBorder", "^```")
+    safe_matchadd("SimpleMarkdownCodeBlockBorder", "^~~~")
 
-  -- Links (simplified patterns)
-  safe_matchadd("SimpleMarkdownLinkText", "\\[[^\\]]*\\]")
+    -- Headers
+    safe_matchadd("SimpleMarkdownH1", "^#\\s")
+    safe_matchadd("SimpleMarkdownH2", "^##\\s")
+    safe_matchadd("SimpleMarkdownH3", "^###\\s")
+    safe_matchadd("SimpleMarkdownH4", "^####\\s")
+    safe_matchadd("SimpleMarkdownH5", "^#####\\s")
+    safe_matchadd("SimpleMarkdownH6", "^######\\s")
 
-  -- Horizontal lines/rules (thematic breaks)
-  if M.config and M.config.horizontal_lines and M.config.horizontal_lines.enable then
-    safe_matchadd("SimpleMarkdownHorizontalLine", "^\\s*---\\+\\s*$")
-    safe_matchadd("SimpleMarkdownHorizontalLine", "^\\s*\\*\\*\\*\\+\\s*$")
-    safe_matchadd("SimpleMarkdownHorizontalLine", "^\\s*___\\+\\s*$")
+    -- List markers
+    safe_matchadd("SimpleMarkdownListMarker", "^\\s*[-*+]\\s")
+    safe_matchadd("SimpleMarkdownListMarker", "^\\s*\\d\\+\\.")
+
+    -- Emphasis and strong (simplified)
+    safe_matchadd("SimpleMarkdownStrong", "\\*\\*[^*]*\\*\\*")
+    safe_matchadd("SimpleMarkdownStrong", "__[^_]*__")
+    safe_matchadd("SimpleMarkdownEmphasis", "\\*[^*]*\\*")
+    safe_matchadd("SimpleMarkdownEmphasis", "_[^_]*_")
+
+    -- Links (simplified patterns)
+    safe_matchadd("SimpleMarkdownLinkText", "\\[[^\\]]*\\]")
+  end
+
+  -- Always apply horizontal lines (works in both modes)
+  apply_horizontal_lines()
+
+  -- Add regular highlighting for horizontal lines as fallback
+  if not preview_mode then
+    safe_matchadd("SimpleMarkdownHorizontalLine", "^%s*%-%-%-+%s*$")
+    safe_matchadd("SimpleMarkdownHorizontalLine", "^%s*%*%*%*+%s*$")
+    safe_matchadd("SimpleMarkdownHorizontalLine", "^%s*___+%s*$")
   end
 end
 
@@ -188,7 +251,7 @@ function M.setup_autocmds()
 
   vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter", "TextChanged", "TextChangedI" }, {
     group = group,
-    pattern = "*.md",
+    pattern = { "*.md", "*.mdc" },
     callback = function()
       -- Small delay to allow buffer to stabilize
       vim.defer_fn(function()
@@ -216,6 +279,17 @@ function M.setup_autocmds()
           end
         end
       end, 100)
+    end,
+  })
+
+  -- Refresh horizontal lines when window is resized
+  vim.api.nvim_create_autocmd("VimResized", {
+    group = group,
+    callback = function()
+      -- Reapply horizontal lines for markdown files
+      if vim.bo.filetype == "markdown" then
+        apply_horizontal_lines()
+      end
     end,
   })
 end
